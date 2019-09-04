@@ -343,13 +343,13 @@
     <module>resolver-dns</module>
     <module>tarball</module>
     <module>transport</module>
-    <module>transport-native-unix-common-tests</module>
-    <module>transport-native-unix-common</module>
-    <module>transport-native-epoll</module>
-    <module>transport-native-kqueue</module>
-    <module>transport-rxtx</module>
-    <module>transport-sctp</module>
-    <module>transport-udt</module>
+<!--    <module>transport-native-unix-common-tests</module>-->
+<!--    <module>transport-native-unix-common</module>-->
+<!--    <module>transport-native-epoll</module>-->
+<!--    <module>transport-native-kqueue</module>-->
+<!--    <module>transport-rxtx</module>-->
+<!--    <module>transport-sctp</module>-->
+<!--    <module>transport-udt</module>-->
     <module>handler</module>
     <module>handler-proxy</module>
     <module>example</module>
