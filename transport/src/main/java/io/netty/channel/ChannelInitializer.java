@@ -73,6 +73,7 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
     @Override
     @SuppressWarnings("unchecked")
     public final void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("看看是否走ChannelInitializer channelRegistered");
         // Normally this method will never be called as handlerAdded(...) should call initChannel(...) and remove
         // the handler.
         if (initChannel(ctx)) {
