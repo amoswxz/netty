@@ -36,12 +36,17 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
 
     static long deadlineNanos(long delay) {
         long deadlineNanos = nanoTime() + delay;
-        // Guard against overflow
+        // Guard against overflow 防止溢出
         return deadlineNanos < 0 ? Long.MAX_VALUE : deadlineNanos;
     }
 
     private final long id = nextTaskId.getAndIncrement();
     private long deadlineNanos;
+    /**
+     * 1.执行一次
+     * 2.每隔一段时间执行一次
+     * 3.每次执行结束，隔一定时间再执行一次
+     */
     /* 0 - no repeat, >0 - repeat at fixed rate, <0 - repeat with fixed delay */
     private final long periodNanos;
 

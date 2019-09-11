@@ -56,6 +56,12 @@ final class SelectedSelectionKeySetSelector extends Selector {
         return delegate.selectNow();
     }
 
+    /**
+     * 清空io事件。然后重新填充
+     * @param timeout
+     * @return
+     * @throws IOException
+     */
     @Override
     public int select(long timeout) throws IOException {
         selectionKeys.reset();
