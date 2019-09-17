@@ -59,7 +59,7 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     public NioEventLoopGroup(int nThreads, ThreadFactory threadFactory) {
         this(nThreads, threadFactory, SelectorProvider.provider());
     }
-
+    //获取provider一种是通过spi的形式获取；还有一种是-D自定义provider；否则就使用默认的DefaultSelectorProvider.crete();
     public NioEventLoopGroup(int nThreads, Executor executor) {
         this(nThreads, executor, SelectorProvider.provider());
     }
@@ -77,12 +77,12 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
         final SelectorProvider selectorProvider, final SelectStrategyFactory selectStrategyFactory) {
         super(nThreads, threadFactory, selectorProvider, selectStrategyFactory, RejectedExecutionHandlers.reject());
     }
-
+    //DefaultSelectStrategyFactory.INSTANCE 是一种策略。在轮训事件处理的时候会使用
     public NioEventLoopGroup(
             int nThreads, Executor executor, final SelectorProvider selectorProvider) {
         this(nThreads, executor, selectorProvider, DefaultSelectStrategyFactory.INSTANCE);
     }
-
+    //RejectedExecutionHandlers.reject() 拒绝策略。抛出异常
     public NioEventLoopGroup(int nThreads, Executor executor, final SelectorProvider selectorProvider,
                              final SelectStrategyFactory selectStrategyFactory) {
         super(nThreads, executor, selectorProvider, selectStrategyFactory, RejectedExecutionHandlers.reject());

@@ -63,7 +63,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
      * @param ch                the underlying {@link SelectableChannel} on which it operates
      */
     protected AbstractNioByteChannel(Channel parent, SelectableChannel ch) {
-        //todo 创建channel的时候这里为啥传入op_read
+        //todo parent==null 创建channel的时候这里为啥传入op_read
         super(parent, ch, SelectionKey.OP_READ);
     }
 

@@ -16,6 +16,7 @@
 package io.netty.channel;
 
 import io.netty.channel.Channel.Unsafe;
+import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.ResourceLeakDetector;
 import io.netty.util.concurrent.EventExecutor;
@@ -61,10 +62,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private static final AtomicReferenceFieldUpdater<DefaultChannelPipeline, MessageSizeEstimator.Handle> ESTIMATOR =
             AtomicReferenceFieldUpdater.newUpdater(
                     DefaultChannelPipeline.class, MessageSizeEstimator.Handle.class, "estimatorHandle");
+    // 头部节点和尾部节点的引用变量
+    // ChannelHandlerContext在ChannelPipeline中是以链表的形式组织的
     final AbstractChannelHandlerContext head;
     final AbstractChannelHandlerContext tail;
 
     private final Channel channel;
+    //成功回调函数
     private final ChannelFuture succeededFuture;
     private final VoidChannelPromise voidPromise;
     private final boolean touch = ResourceLeakDetector.isEnabled();
@@ -199,15 +203,20 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
+            // 检查ChannelHandler是否为一个共享对象(@Sharable)
+            // 如果该ChannelHandler没有@Sharable注解，并且是已被添加过的那么就抛出异常
             checkMultiplicity(handler);
-
+            // 返回一个DefaultChannelHandlerContext，注意该对象持有了传入的ChannelHandler
             newCtx = newContext(group, filterName(name, handler), handler);
-
+            // 将新的ChannelHandlerContext插入到尾部与尾部之前的节点之间
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
             // In this case we add the context to the pipeline and add a task that will call
             // ChannelHandler.handlerAdded(...) once the channel is registered.
+            // 如果当前ChannelPipeline没有被注册，这意味着通道还没有在eventLoop上注册。
+            //在本例中，我们将上下文添加到管道中，并添加一个将调用的任务
+            // ChannelHandler.handlerAdded(…)一旦注册了通道。
             if (!registered) {
                 newCtx.setAddPending();
                 callHandlerCallbackLater(newCtx, true);
@@ -220,6 +229,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+        //回调用户方法、 以及更新状态为已添加
         callHandlerAdded0(newCtx);
         return this;
     }
@@ -399,6 +409,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         // It's not very likely for a user to put more than one handler of the same type, but make sure to avoid
         // any name conflicts.  Note that we don't cache the names generated here.
+        // 生成完了，还要看默认name有没有冲突
         if (context0(name) != null) {
             String baseName = name.substring(0, name.length() - 1); // Strip the trailing '0'.
             for (int i = 1;; i ++) {

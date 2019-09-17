@@ -444,7 +444,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     @UnstableApi
     protected void afterRunningAllTasks() { }
     /**
-     * Returns the amount of time left until the scheduled task with the closest dead line is executed.
+     * 返回最先执行的任务的时间
+     * returns the amount of time left until the scheduled task with the closest dead line is executed.
      */
     protected long delayNanos(long currentTimeNanos) {
         ScheduledFutureTask<?> scheduledTask = peekScheduledTask();

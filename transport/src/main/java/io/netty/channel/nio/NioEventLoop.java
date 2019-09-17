@@ -15,6 +15,7 @@
  */
 package io.netty.channel.nio;
 
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.IO;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelException;
 import io.netty.channel.EventLoop;
@@ -118,10 +119,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * Boolean that controls determines if a blocked Selector.select should break out of its selection process. In our
      * case we use a timeout for the select method and the select method will block for that time unless waken up.
      */
+    //todo 这个变量其实就是用来控制是否可以进行唤醒。如果nioeventloop.select()阻塞的时候。同时用户线程添加了task。那么会通过cas修改成true。然后调用wakenup唤醒阻塞的线程
     private final AtomicBoolean wakenUp = new AtomicBoolean();
 
     private final SelectStrategy selectStrategy;
 
+    //todo 表示的是此线程分配给 IO操作所占的时间比
     private volatile int ioRatio = 50;
     private int cancelledKeys;
     private boolean needsToSelectAgain;
@@ -209,7 +212,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         final Class<?> selectorImplClass = (Class<?>) maybeSelectorImplClass;
         final SelectedSelectionKeySet selectedKeySet = new SelectedSelectionKeySet();
         //todo 这里的逻辑是netty进行优化。对selectdKeys和publicSelectedKeys 这里为什么能进行优化 是因为nio中用的是set集合，netty把这改成了数组 使用数组能利用到CPU缓存行
-        //时间复杂度是衡量一个算法随着数据规模的增加时间开销是怎么增加的
+        //todo 时间复杂度是衡量一个算法随着数据规模的增加时间开销是怎么增加的
         Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -242,7 +245,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     if (cause != null) {
                         return cause;
                     }
-
+                    //todo 把这两个值设置为selectedselectionkeyset 对象
                     selectedKeysField.set(unwrappedSelector, selectedKeySet);
                     publicSelectedKeysField.set(unwrappedSelector, selectedKeySet);
                     return null;
@@ -357,6 +360,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * Replaces the current {@link Selector} of this event loop with newly created {@link Selector}s to work around the
      * infamous epoll 100% CPU bug.
      */
+    //todo 重建selector。空轮训是因为连接中断导致的。把连接取消掉就好了
     public void rebuildSelector() {
         if (!inEventLoop()) {
             execute(new Runnable() {
@@ -448,17 +452,18 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         for (; ; ) {
             try {
                 try {
-                    //todo selectNowSupplier调用了selectNow()会立即返回，不会阻塞
+                    //todo selectNowSupplier调用了selectNow()会立即返回，不会阻塞。
+                    //根据是否有task判断，如果有task就selectNow()。否则执行select
                     switch (selectStrategy.calculateStrategy(selectNowSupplier, hasTasks())) {
                         case SelectStrategy.CONTINUE:
                             continue;
 
                         case SelectStrategy.BUSY_WAIT:
                             // fall-through to SELECT since the busy-wait is not supported with NIO
-
+                            //由于NIO不支持繁忙等待，所以选择drop -through
                         case SelectStrategy.SELECT:
                             //todo 轮询注册到reactor线程上对用的selector上的所有的channel的IO事件
-                            //todo wakenUp 表示是否应该唤醒正在阻塞的select操作，可以看到netty在进行一次新的loop之前，都会将wakeUp 被设置成false，
+                            //todo wakenUp 表示是否应该唤醒正在阻塞的select操作，可以看到netty在进行一次新的loop之前，都会将wakeUp 被设置成false
                             select(wakenUp.getAndSet(false));
 
                             // 'wakenUp.compareAndSet(false, true)' is always evaluated
@@ -505,6 +510,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
+                //processSelectedKeys 耗时在整个循环中所占用的时间
+                //ioRate = 70 时, 则表示 IO 运行耗时占比为70%, 即假设某次循环一共耗时为 100ms, 那么根据公式, 我们知道 processSelectedKeys()
+                // 方法调用所耗时大概为70ms(即 IO 耗时), 而 runAllTasks() 耗时大概为 30ms(即执行 task 耗时).
                 final int ioRatio = this.ioRatio;
                 if (ioRatio == 100) {
                     try {
@@ -639,7 +647,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             selectedKeys.keys[i] = null;
             //获取通道中注册的对象
             final Object a = k.attachment();
-            //
+            //这里是在register的时候把this放进去啦 AbstractNioChannel.doRegister:
+            //询出某条SelectableChannel有IO事件发生时，就可以直接取出AbstractNioChannel进行后续操作
             if (a instanceof AbstractNioChannel) {
                 processSelectedKey(k, (AbstractNioChannel) a);
             } else {
@@ -687,6 +696,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             int readyOps = k.readyOps();
             // We first need to call finishConnect() before try to trigger a read(...) or write(...) as otherwise
             // the NIO JDK channel implementation may throw a NotYetConnectedException.
+            //连接事件
             if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
                 // remove OP_CONNECT as otherwise Selector.select(..) will always return without blocking
                 // See https://github.com/netty/netty/issues/924
@@ -698,6 +708,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             }
 
             // Process OP_WRITE first as we may be able to write some queued buffers and so free memory.
+            //可写事件
             if ((readyOps & SelectionKey.OP_WRITE) != 0) {
                 // Call forceFlush which will also take care of clear the OP_WRITE once there is nothing left to write
                 ch.unsafe().forceFlush();
@@ -705,6 +716,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             // Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
             // to a spin loop
+            //可读事件
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
                 unsafe.read();
             }
@@ -791,13 +803,15 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private void select(boolean oldWakenUp) throws IOException {
         Selector selector = this.selector;
         try {
+            //selectCnt 定义循环的次数
             int selectCnt = 0;
             long currentTimeNanos = System.nanoTime();
             long selectDeadLineNanos = currentTimeNanos + delayNanos(currentTimeNanos);
 
             for (; ; ) {
-                //todo 1.定时任务截至事时间快到了，中断本次轮询
+                //todo 1.定时任务执行时间快到了，中断本次轮询
                 long timeoutMillis = (selectDeadLineNanos - currentTimeNanos + 500000L) / 1000000L;
+                //小于0.5毫秒
                 if (timeoutMillis <= 0) {
                     //todo selectCnt表示进行select的次数，等于0说明还没有进入过
                     if (selectCnt == 0) {
@@ -812,6 +826,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // If we don't, the task might be pended until select operation was timed out.
                 // It might be pended until idle timeout if IdleStateHandler existed in pipeline.
                 // todo 2.轮询过程中发现有任务加入，中断本次轮询
+                // todo 就是如果用户提交了一个任务，任务里面要通过selector的wakenup唤醒selector。如果这边不这样写，任务暂时就执行不到了
                 if (hasTasks() && wakenUp.compareAndSet(false, true)) {
                     selector.selectNow();
                     selectCnt = 1;
@@ -862,6 +877,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         selectCnt >= SELECTOR_AUTO_REBUILD_THRESHOLD) {
                     // The code exists in an extra method to ensure the method is not too big to inline as this
                     // branch is not very likely to get hit very frequently.
+                    //这里也是内联
                     selector = selectRebuildSelector(selectCnt);
                     selectCnt = 1;
                     break;

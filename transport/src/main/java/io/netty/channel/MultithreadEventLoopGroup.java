@@ -34,6 +34,7 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MultithreadEventLoopGroup.class);
 
+    //获取eventlopp线程数。看看有没有-Dio.netty.eventLoopThread 没有就是获取cpu的核数
     private static final int DEFAULT_EVENT_LOOP_THREADS;
 
     static {
