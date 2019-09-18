@@ -6,6 +6,8 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import java.nio.channels.Selector;
+import sun.nio.ch.SelectorImpl;
 
 /**
  * @author: Pimow
@@ -19,8 +21,6 @@ public class NettyClient {
                 .handler(new ChannelInitializer() {
             protected void initChannel(Channel ch) throws Exception {
                 ch.pipeline().addLast(new FirstClientHandler());
-                ch.pipeline().addLast(new FirstClientHandler());
-                ch.pipeline().addLast(new FirstClientHandler());
             }
         });
         bootstrap.connect("127.0.0.1", 8000).addListener(future -> {
@@ -30,5 +30,6 @@ public class NettyClient {
                 System.out.println("连接失败");
             }
         });
+        work.shutdownGracefully();
     }
 }

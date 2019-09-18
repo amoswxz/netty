@@ -90,6 +90,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     private final CountDownLatch threadLock = new CountDownLatch(1);
     private final Set<Runnable> shutdownHooks = new LinkedHashSet<Runnable>();
+    //todo 这块还不清楚是干嘛的 应该是添加任务的时候要唤醒selector
     private final boolean addTaskWakesUp;
     private final int maxPendingTasks;
     private final RejectedExecutionHandler rejectedExecutionHandler;
@@ -361,7 +362,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         assert inEventLoop();
         boolean fetchedAll;
         boolean ranAtLeastOne = false;
-
+        //继续处理，直到我们获取所有计划的任务。
         do {
             fetchedAll = fetchFromScheduledTaskQueue();
             if (runAllTasksFrom(taskQueue)) {
@@ -372,6 +373,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         if (ranAtLeastOne) {
             lastExecutionTime = ScheduledFutureTask.nanoTime();
         }
+        //执行收尾任务
         afterRunningAllTasks();
         return ranAtLeastOne;
     }

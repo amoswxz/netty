@@ -75,12 +75,13 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         if (executor == null) {
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
-
+        //根据线程数创建大小为nthreads数组大小
         children = new EventExecutor[nThreads];
 
         for (int i = 0; i < nThreads; i ++) {
             boolean success = false;
             try {
+                //这里用nioEventLoop填充数组
                 children[i] = newChild(executor, args);
                 success = true;
             } catch (Exception e) {
@@ -89,6 +90,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             } finally {
                 if (!success) {
                     for (int j = 0; j < i; j ++) {
+                        //关闭创建的nioeventloop
                         children[j].shutdownGracefully();
                     }
 
@@ -107,18 +109,19 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
                 }
             }
         }
-
+        //获取nioEventLoop线程的时候使用位运算还是摸运算
         chooser = chooserFactory.newChooser(children);
-
+        //线程
         final FutureListener<Object> terminationListener = new FutureListener<Object>() {
             @Override
             public void operationComplete(Future<Object> future) throws Exception {
                 if (terminatedChildren.incrementAndGet() == children.length) {
+                    //设置为null代表通知了所有的listener
                     terminationFuture.setSuccess(null);
                 }
             }
         };
-
+        //给每一个nioEventLoop添加listener
         for (EventExecutor e: children) {
             e.terminationFuture().addListener(terminationListener);
         }

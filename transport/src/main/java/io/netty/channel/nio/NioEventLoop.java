@@ -15,7 +15,6 @@
  */
 package io.netty.channel.nio;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.IO;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelException;
 import io.netty.channel.EventLoop;
@@ -119,12 +118,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * Boolean that controls determines if a blocked Selector.select should break out of its selection process. In our
      * case we use a timeout for the select method and the select method will block for that time unless waken up.
      */
-    //todo 这个变量其实就是用来控制是否可以进行唤醒。如果nioeventloop.select()阻塞的时候。同时用户线程添加了task。那么会通过cas修改成true。然后调用wakenup唤醒阻塞的线程
+    //这个变量其实就是用来控制是否可以进行唤醒。如果nioeventloop.select()阻塞的时候。同时用户线程添加了task。那么会通过cas修改成true。然后调用wakenup唤醒阻塞的线程
     private final AtomicBoolean wakenUp = new AtomicBoolean();
 
     private final SelectStrategy selectStrategy;
 
-    //todo 表示的是此线程分配给 IO操作所占的时间比
+    //表示的是此线程分配给 IO操作所占的时间比
     private volatile int ioRatio = 50;
     private int cancelledKeys;
     private boolean needsToSelectAgain;
@@ -141,6 +140,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             throw new NullPointerException("selectStrategy");
         }
         provider = selectorProvider;
+        //获取一个selector，并且优化set变为数组
         final SelectorTuple selectorTuple = openSelector();
         selector = selectorTuple.selector;
         unwrappedSelector = selectorTuple.unwrappedSelector;
@@ -150,6 +150,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private static Queue<Runnable> newTaskQueue(
             EventLoopTaskQueueFactory queueFactory) {
         if (queueFactory == null) {
+            //创建一个无界的队列。目前这里有疑问 todo 队列干哈的
             return newTaskQueue0(DEFAULT_MAX_PENDING_TASKS);
         }
         return queueFactory.newTaskQueue(DEFAULT_MAX_PENDING_TASKS);
@@ -171,20 +172,24 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+
+    /**
+     * 这里是netty的一个优化点，把nio的set集合替换成数组 使用数组能利用到CPU缓存行 还有复杂度都是o(1)
+     */
     private SelectorTuple openSelector() {
         final Selector unwrappedSelector;
         try {
-            //todo 创建 Selector
+            // 创建 Selector
             unwrappedSelector = provider.openSelector();
         } catch (IOException e) {
             throw new ChannelException("failed to open a new selector", e);
         }
-        // todo 判断是否开启优化开关，默认没有开启直接返回 Selector
+        // 判断是否开启优化开关，默认没有开启直接返回 Selector
         if (DISABLE_KEY_SET_OPTIMIZATION) {
             return new SelectorTuple(unwrappedSelector);
         }
 
-        //todo 反射获取SelectorImpl
+        // 反射获取SelectorImpl
         Object maybeSelectorImplClass = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -198,6 +203,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 }
             }
         });
+        System.out.println(((Class<?>) maybeSelectorImplClass).isAssignableFrom(unwrappedSelector.getClass()));
 
         if (!(maybeSelectorImplClass instanceof Class) ||
                 // ensure the current selector implementation is what we can instrument.
@@ -211,8 +217,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         final Class<?> selectorImplClass = (Class<?>) maybeSelectorImplClass;
         final SelectedSelectionKeySet selectedKeySet = new SelectedSelectionKeySet();
-        //todo 这里的逻辑是netty进行优化。对selectdKeys和publicSelectedKeys 这里为什么能进行优化 是因为nio中用的是set集合，netty把这改成了数组 使用数组能利用到CPU缓存行
-        //todo 时间复杂度是衡量一个算法随着数据规模的增加时间开销是怎么增加的
+        // 这里的逻辑是netty进行优化。对selectdKeys和publicSelectedKeys 这里为什么能进行优化 是因为nio中用的是set集合，netty把这改成了数组 使用数组能利用到CPU缓存行
+        // 时间复杂度是衡量一个算法随着数据规模的增加时间开销是怎么增加的
         Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -245,7 +251,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     if (cause != null) {
                         return cause;
                     }
-                    //todo 把这两个值设置为selectedselectionkeyset 对象
+                    // 把这两个值设置为selectedselectionkeyset 对象
                     selectedKeysField.set(unwrappedSelector, selectedKeySet);
                     publicSelectedKeysField.set(unwrappedSelector, selectedKeySet);
                     return null;
@@ -360,7 +366,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * Replaces the current {@link Selector} of this event loop with newly created {@link Selector}s to work around the
      * infamous epoll 100% CPU bug.
      */
-    //todo 重建selector。空轮训是因为连接中断导致的。把连接取消掉就好了
+    // 重建selector。空轮训是因为连接中断导致的。把连接取消掉就好了
     public void rebuildSelector() {
         if (!inEventLoop()) {
             execute(new Runnable() {
@@ -452,7 +458,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         for (; ; ) {
             try {
                 try {
-                    //todo selectNowSupplier调用了selectNow()会立即返回，不会阻塞。
+                    // selectNowSupplier调用了selectNow()会立即返回，不会阻塞。
                     //根据是否有task判断，如果有task就selectNow()。否则执行select
                     switch (selectStrategy.calculateStrategy(selectNowSupplier, hasTasks())) {
                         case SelectStrategy.CONTINUE:
@@ -462,8 +468,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                             // fall-through to SELECT since the busy-wait is not supported with NIO
                             //由于NIO不支持繁忙等待，所以选择drop -through
                         case SelectStrategy.SELECT:
-                            //todo 轮询注册到reactor线程上对用的selector上的所有的channel的IO事件
-                            //todo wakenUp 表示是否应该唤醒正在阻塞的select操作，可以看到netty在进行一次新的loop之前，都会将wakeUp 被设置成false
+                            // 轮询注册到reactor线程上对用的selector上的所有的channel的IO事件
+                            // wakenUp 表示是否应该唤醒正在阻塞的select操作，可以看到netty在进行一次新的loop之前，都会将wakeUp 被设置成false
                             select(wakenUp.getAndSet(false));
 
                             // 'wakenUp.compareAndSet(false, true)' is always evaluated
@@ -516,11 +522,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 final int ioRatio = this.ioRatio;
                 if (ioRatio == 100) {
                     try {
-                        //todo 处理产生网络IO事件的channel
+                        // 处理产生网络IO事件的channel
                         processSelectedKeys();
                     } finally {
                         // Ensure we always run tasks.
-                        //todo 处理任务队列
+                        // 处理任务队列
                         runAllTasks();
                     }
                 } else {
@@ -563,7 +569,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     private void processSelectedKeys() {
-        //todo 一种是处理优化过的selectedKeys，一种是正常的处理
+        // 一种是处理优化过的selectedKeys，一种是正常的处理
         if (selectedKeys != null) {
             processSelectedKeysOptimized();
         } else {
@@ -780,6 +786,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     @Override
     protected void wakeup(boolean inEventLoop) {
+        //外部线程调用execute方法添加任务
         if (!inEventLoop && wakenUp.compareAndSet(false, true)) {
             selector.wakeup();
         }
@@ -809,11 +816,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             long selectDeadLineNanos = currentTimeNanos + delayNanos(currentTimeNanos);
 
             for (; ; ) {
-                //todo 1.定时任务执行时间快到了，中断本次轮询
+                // 1.定时任务执行时间快到了，中断本次轮询
                 long timeoutMillis = (selectDeadLineNanos - currentTimeNanos + 500000L) / 1000000L;
                 //小于0.5毫秒
                 if (timeoutMillis <= 0) {
-                    //todo selectCnt表示进行select的次数，等于0说明还没有进入过
+                    // selectCnt表示进行select的次数，等于0说明还没有进入过
                     if (selectCnt == 0) {
                         selector.selectNow();
                         selectCnt = 1;
@@ -825,14 +832,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // Selector#wakeup. So we need to check task queue again before executing select operation.
                 // If we don't, the task might be pended until select operation was timed out.
                 // It might be pended until idle timeout if IdleStateHandler existed in pipeline.
-                // todo 2.轮询过程中发现有任务加入，中断本次轮询
-                // todo 就是如果用户提交了一个任务，任务里面要通过selector的wakenup唤醒selector。如果这边不这样写，任务暂时就执行不到了
+                //  2.轮询过程中发现有任务加入，中断本次轮询
+                //  就是如果用户提交了一个任务，任务里面要通过selector的wakenup唤醒selector。如果这边不这样写，任务暂时就执行不到了
                 if (hasTasks() && wakenUp.compareAndSet(false, true)) {
                     selector.selectNow();
                     selectCnt = 1;
                     break;
                 }
-                //todo  3.阻塞式select操作
+                //3.阻塞式select操作
                 int selectedKeys = selector.select(timeoutMillis);
                 selectCnt++;
                 //todo
