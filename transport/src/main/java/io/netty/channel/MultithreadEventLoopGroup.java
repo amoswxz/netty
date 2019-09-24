@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadFactory;
  */
 public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutorGroup implements EventLoopGroup {
 
+    //这里可以关注一下工厂日志。可以适配各种不同的logger
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MultithreadEventLoopGroup.class);
 
     //获取eventlopp线程数。看看有没有-Dio.netty.eventLoopThread 没有就是获取cpu的核数

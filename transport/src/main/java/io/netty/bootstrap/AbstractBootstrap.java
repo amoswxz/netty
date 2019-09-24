@@ -306,8 +306,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
-            //这里就会去初始化NioSocketChannel或者NioServerSocketChannel
+            //这里就会去初始化 NioSocketChannel 或者NioServerSocketChannel 然后就把pipline等一系列的东西都创建好了
             channel = channelFactory.newChannel();
+            //这里就是去添加handler
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {

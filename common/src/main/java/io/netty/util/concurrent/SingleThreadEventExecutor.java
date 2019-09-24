@@ -79,12 +79,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private static final AtomicReferenceFieldUpdater<SingleThreadEventExecutor, ThreadProperties> PROPERTIES_UPDATER =
             AtomicReferenceFieldUpdater.newUpdater(
                     SingleThreadEventExecutor.class, ThreadProperties.class, "threadProperties");
-
+    //这个taskqueue是一个mpsc队列，用于存放任务
     private final Queue<Runnable> taskQueue;
 
     private volatile Thread thread;
     @SuppressWarnings("unused")
     private volatile ThreadProperties threadProperties;
+    //ThreadExecutorMap对这个executor封装了下
     private final Executor executor;
     private volatile boolean interrupted;
 
@@ -174,6 +175,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         super(parent);
         this.addTaskWakesUp = addTaskWakesUp;
         this.maxPendingTasks = DEFAULT_MAX_PENDING_EXECUTOR_TASKS;
+        //ThreadExecutorMap对这个executor封装了下  executor是ThreadPerTaskExecutor
         this.executor = ThreadExecutorMap.apply(executor, this);
         this.taskQueue = ObjectUtil.checkNotNull(taskQueue, "taskQueue");
         rejectedExecutionHandler = ObjectUtil.checkNotNull(rejectedHandler, "rejectedHandler");
@@ -768,10 +770,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         boolean inEventLoop = inEventLoop();
         addTask(task);
         if (!inEventLoop) {
+            //这里需要去启动eventloop线程。cas修改的标识
             startThread();
+            //判断nioeventloop的状态标识
             if (isShutdown()) {
                 boolean reject = false;
                 try {
+                    //从队列移除task
                     if (removeTask(task)) {
                         reject = true;
                     }

@@ -203,8 +203,6 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 }
             }
         });
-        System.out.println(((Class<?>) maybeSelectorImplClass).isAssignableFrom(unwrappedSelector.getClass()));
-
         if (!(maybeSelectorImplClass instanceof Class) ||
                 // ensure the current selector implementation is what we can instrument.
                 !((Class<?>) maybeSelectorImplClass).isAssignableFrom(unwrappedSelector.getClass())) {

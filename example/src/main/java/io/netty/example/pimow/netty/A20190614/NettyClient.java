@@ -17,6 +17,7 @@ public class NettyClient {
     public static void main(String[] args) {
         NioEventLoopGroup work = new NioEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap();
+        //channel(A.class)这里就是设置一个通道的类型
         bootstrap.group(work).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true)
                 .handler(new ChannelInitializer() {
             protected void initChannel(Channel ch) throws Exception {
