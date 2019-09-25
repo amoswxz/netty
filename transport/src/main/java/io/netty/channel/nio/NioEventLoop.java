@@ -126,6 +126,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     //表示的是此线程分配给 IO操作所占的时间比
     private volatile int ioRatio = 50;
     private int cancelledKeys;
+    //调用cancel 取消256次置为flase
     private boolean needsToSelectAgain;
 
     NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
@@ -665,7 +666,6 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // null out entries in the array to allow to have it GC'ed once the Channel close
                 // See https://github.com/netty/netty/issues/2363
                 selectedKeys.reset(i + 1);
-
                 selectAgain();
                 i = -1;
             }
@@ -810,16 +810,19 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         try {
             //selectCnt 定义循环的次数
             int selectCnt = 0;
+            //获取当前的纳秒数
             long currentTimeNanos = System.nanoTime();
+            //获取到任务执行的dealy时间，注意这个delay时间是是加上类启动的时间（类启动的时间可以理解成一个基准时间）
             long selectDeadLineNanos = currentTimeNanos + delayNanos(currentTimeNanos);
 
             for (; ; ) {
-                // 1.定时任务执行时间快到了，中断本次轮询
+                // 1.定时任务执行时间小于0.5毫秒，结束本次轮询
                 long timeoutMillis = (selectDeadLineNanos - currentTimeNanos + 500000L) / 1000000L;
                 //小于0.5毫秒
                 if (timeoutMillis <= 0) {
                     // selectCnt表示进行select的次数，等于0说明还没有进入过
                     if (selectCnt == 0) {
+                        //这里需要唤醒reactor线程
                         selector.selectNow();
                         selectCnt = 1;
                     }

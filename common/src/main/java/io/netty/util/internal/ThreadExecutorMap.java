@@ -49,11 +49,13 @@ public final class ThreadExecutorMap {
      * when called from within the {@link Runnable} during execution.
      */
     public static Executor apply(final Executor executor, final EventExecutor eventExecutor) {
+        //这个executor是ThreadPerTaskExecutor
         ObjectUtil.checkNotNull(executor, "executor");
         ObjectUtil.checkNotNull(eventExecutor, "eventExecutor");
         return new Executor() {
             @Override
             public void execute(final Runnable command) {
+                //这里就去调用ThreadPerTaskExecutor 启动线程
                 executor.execute(apply(command, eventExecutor));
             }
         };
@@ -69,8 +71,10 @@ public final class ThreadExecutorMap {
         return new Runnable() {
             @Override
             public void run() {
+                //这里就是把executor放在fastthreadlocal中，具体做啥用还不清楚
                 setCurrentEventExecutor(eventExecutor);
                 try {
+                    //这里就是执行SingleThreadEventExecutor 916行的run方法
                     command.run();
                 } finally {
                     setCurrentEventExecutor(null);

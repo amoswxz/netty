@@ -41,6 +41,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     private final long id = nextTaskId.getAndIncrement();
+    //延迟时间，这个时间是在类加载的基础上加了delay
     private long deadlineNanos;
     /**
      * 1.执行一次
