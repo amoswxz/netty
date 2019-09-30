@@ -104,7 +104,9 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
      * value is {@code true}.
      */
     public static final ChannelOption<Boolean> AUTO_CLOSE = valueOf("AUTO_CLOSE");
-
+    /**
+     *  这个选项是允许进程发送广播消息
+     */
     public static final ChannelOption<Boolean> SO_BROADCAST = valueOf("SO_BROADCAST");
     /**
      * Channeloption.SO_KEEPALIVE参数对应于套接字选项中的SO_KEEPALIVE，该参数用于设置TCP连接，当设置该选项以后，连接会测试链接的状态，这个选项用于可能长时间没有数据交流的连接。

@@ -21,14 +21,12 @@ import io.netty.util.concurrent.SingleThreadEventExecutor;
 import io.netty.util.internal.ObjectUtil;
 import io.netty.util.internal.SystemPropertyUtil;
 import io.netty.util.internal.UnstableApi;
-
 import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
 /**
  * Abstract base class for {@link EventLoop}s that execute all its submitted tasks in a single thread.
- *
  */
 public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor implements EventLoop {
 
@@ -47,22 +45,22 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     }
 
     protected SingleThreadEventLoop(EventLoopGroup parent, ThreadFactory threadFactory,
-                                    boolean addTaskWakesUp, int maxPendingTasks,
-                                    RejectedExecutionHandler rejectedExecutionHandler) {
+            boolean addTaskWakesUp, int maxPendingTasks,
+            RejectedExecutionHandler rejectedExecutionHandler) {
         super(parent, threadFactory, addTaskWakesUp, maxPendingTasks, rejectedExecutionHandler);
         tailTasks = newTaskQueue(maxPendingTasks);
     }
 
     protected SingleThreadEventLoop(EventLoopGroup parent, Executor executor,
-                                    boolean addTaskWakesUp, int maxPendingTasks,
-                                    RejectedExecutionHandler rejectedExecutionHandler) {
+            boolean addTaskWakesUp, int maxPendingTasks,
+            RejectedExecutionHandler rejectedExecutionHandler) {
         super(parent, executor, addTaskWakesUp, maxPendingTasks, rejectedExecutionHandler);
         tailTasks = newTaskQueue(maxPendingTasks);
     }
 
     protected SingleThreadEventLoop(EventLoopGroup parent, Executor executor,
-                                    boolean addTaskWakesUp, Queue<Runnable> taskQueue, Queue<Runnable> tailTaskQueue,
-                                    RejectedExecutionHandler rejectedExecutionHandler) {
+            boolean addTaskWakesUp, Queue<Runnable> taskQueue, Queue<Runnable> tailTaskQueue,
+            RejectedExecutionHandler rejectedExecutionHandler) {
         super(parent, executor, addTaskWakesUp, taskQueue, rejectedExecutionHandler);
         //这个tailTasks队列根本没有任何用。提供给用户使用的
         tailTasks = ObjectUtil.checkNotNull(tailTaskQueue, "tailTaskQueue");
@@ -129,7 +127,6 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
      * Removes a task that was added previously via {@link #executeAfterEventLoopIteration(Runnable)}.
      *
      * @param task to be removed.
-     *
      * @return {@code true} if the task was removed as a result of this call.
      */
     @UnstableApi
@@ -142,6 +139,9 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         return !(task instanceof NonWakeupRunnable);
     }
 
+    /**
+     * NioEventLoop可以通过父类SingleTheadEventLoop的executeAfterEventLoopIteration方法向tailTasks中添加收尾任务，比如，你想统计一下一次执行一次任务循环花了多长时间就可以调用此方法
+     */
     @Override
     protected void afterRunningAllTasks() {
         runAllTasksFrom(tailTasks);
@@ -158,9 +158,8 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     }
 
     /**
-     * Returns the number of {@link Channel}s registered with this {@link EventLoop} or {@code -1}
-     * if operation is not supported. The returned value is not guaranteed to be exact accurate and
-     * should be viewed as a best effort.
+     * Returns the number of {@link Channel}s registered with this {@link EventLoop} or {@code -1} if operation is not
+     * supported. The returned value is not guaranteed to be exact accurate and should be viewed as a best effort.
      */
     @UnstableApi
     public int registeredChannels() {
@@ -170,5 +169,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     /**
      * Marker interface for {@link Runnable} that will not trigger an {@link #wakeup(boolean)} in all cases.
      */
-    interface NonWakeupRunnable extends Runnable { }
+    interface NonWakeupRunnable extends Runnable {
+
+    }
 }

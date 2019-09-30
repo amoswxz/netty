@@ -19,10 +19,8 @@ public class NettyServer {
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {
                     protected void initChannel(NioSocketChannel ch) {
                         ch.pipeline().addLast(new FirstServerHandler());
-
                     }
                 });
         serverBootstrap.bind(8000);
-        boss.shutdownGracefully();
     }
 }

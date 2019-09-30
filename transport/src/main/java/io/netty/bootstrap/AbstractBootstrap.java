@@ -289,12 +289,13 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
                     if (cause != null) {
                         // Registration on the EventLoop failed so fail the ChannelPromise directly to not cause an
                         // IllegalStateException once we try to access the EventLoop of the Channel.
+                        //这里就是注册失败的
                         promise.setFailure(cause);
                     } else {
                         // Registration was successful, so set the correct executor to use.
                         // See https://github.com/netty/netty/issues/2586
+                        //注册成功设置
                         promise.registered();
-
                         doBind0(regFuture, channel, localAddress, promise);
                     }
                 }
@@ -320,7 +321,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
                 // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
                 return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
             }
-            //这里就是获取到nioeventloop
+            //这里就是获取到NioEventLoopGroup
             ChannelFuture regFuture = config().group().register(channel);
             if (regFuture.cause() != null) {
                 if (channel.isRegistered()) {

@@ -182,6 +182,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+        //回调用户方法、 以及更新状态为已添加
         callHandlerAdded0(newCtx);
         return this;
     }
@@ -222,14 +223,15 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 callHandlerCallbackLater(newCtx, true);
                 return this;
             }
-
+            //这里有可能不是一个reactor线程。这里可能是一个用户启动线程
+            //work channel初始化的时候就是一个reacotor线程
             EventExecutor executor = newCtx.executor();
             if (!executor.inEventLoop()) {
                 callHandlerAddedInEventLoop(newCtx, executor);
                 return this;
             }
         }
-        //回调用户方法、 以及更新状态为已添加
+        //回调用户方法、 以及更新状态为已添加。目前从我看源码的知识来看只有work 的reactor线程可以走到这里
         callHandlerAdded0(newCtx);
         return this;
     }

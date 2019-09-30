@@ -525,7 +525,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         processSelectedKeys();
                     } finally {
                         // Ensure we always run tasks.
-                        // 处理任务队列
+                        // 处理所有任务队列
                         runAllTasks();
                     }
                 } else {
@@ -672,7 +672,20 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * OP_ACCEPT就绪条件：
+     * 当收到一个客户端的连接请求时，该操作就绪。这是ServerSocketChannel上唯一有效的操作。
+     * OP_CONNECT就绪条件：
+     * 只有客户端SocketChannel会注册该操作，当客户端调用SocketChannel.connect()时，该操作会就绪。
+     * OP_READ就绪条件：
+     * 该操作对客户端和服务端的SocketChannel都有效，当OS的读缓冲区中有数据可读时，该操作就绪。
+     * OP_WRITE就绪条件：
+     * 该操作对客户端和服务端的SocketChannel都有效，当OS的写缓冲区中有空闲的空间时，该操作就绪。
+     * @param k
+     * @param ch
+     */
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
+        //channel底层都会有一个与unsafe绑定，每种类型的channel实际的操作都由unsafe来实现
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
         if (!k.isValid()) {
             final EventLoop eventLoop;
@@ -707,7 +720,6 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 int ops = k.interestOps();
                 ops &= ~SelectionKey.OP_CONNECT;
                 k.interestOps(ops);
-
                 unsafe.finishConnect();
             }
 
@@ -720,8 +732,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             // Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
             // to a spin loop
-            //可读事件
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
+                //注意，这里如果是server端那么unsafe就是NioMessageUnsafe client就是NioByteUnsafe
                 unsafe.read();
             }
         } catch (CancelledKeyException ignored) {
@@ -840,7 +852,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     selectCnt = 1;
                     break;
                 }
-                //3.阻塞式select操作
+                //3.阻塞式select操作。这里会把fd放入集合 SelectedSelectionKeySet的数组中
                 int selectedKeys = selector.select(timeoutMillis);
                 selectCnt++;
                 //todo

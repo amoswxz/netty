@@ -61,8 +61,11 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
         @Override
         public void read() {
+            //判断是否是reactor线程
             assert eventLoop().inEventLoop();
+            //获取到配置
             final ChannelConfig config = config();
+            //获取pipline
             final ChannelPipeline pipeline = pipeline();
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             allocHandle.reset(config);
@@ -92,6 +95,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                     readPending = false;
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
+                //清理容器
                 readBuf.clear();
                 allocHandle.readComplete();
                 pipeline.fireChannelReadComplete();
