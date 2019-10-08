@@ -18,7 +18,7 @@ public class FirstClientHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buffer = ctx.alloc().buffer();
         System.out.println(buffer.capacity());
         System.out.println(buffer.maxCapacity());
-        byte[] bytes = ("皮摩~我").getBytes(Charset.forName("utf-8"));
+        byte[] bytes = ("客户端写数据").getBytes(Charset.forName("utf-8"));
         buffer.writeBytes(bytes);
         buffer.retain();
         ctx.channel().writeAndFlush(buffer);

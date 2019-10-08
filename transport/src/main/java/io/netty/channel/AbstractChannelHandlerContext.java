@@ -349,6 +349,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     @Override
     public ChannelHandlerContext fireChannelRead(final Object msg) {
+        //findContextInbound这里传入了mask。用来标识是查询in还是out channelhandler
         invokeChannelRead(findContextInbound(MASK_CHANNEL_READ), msg);
         return this;
     }

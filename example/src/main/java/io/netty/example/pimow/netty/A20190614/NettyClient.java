@@ -31,6 +31,6 @@ public class NettyClient {
                 System.out.println("连接失败");
             }
         });
-        work.shutdownGracefully();
+//        work.shutdownGracefully();
     }
 }
