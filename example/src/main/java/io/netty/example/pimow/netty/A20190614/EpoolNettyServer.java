@@ -10,7 +10,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 /**
  * @author: Pimow
  **/
-public class NettyServer {
+public class EpoolNettyServer {
 
     public static void main(String[] args) {
         NioEventLoopGroup boss = new NioEventLoopGroup(1);
