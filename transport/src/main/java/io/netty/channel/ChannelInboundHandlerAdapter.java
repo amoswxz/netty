@@ -42,6 +42,7 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
     @Skip
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("channel 绑定到线程(NioEventLoop)：channelRegistered()");
         ctx.fireChannelRegistered();
     }
 
@@ -51,9 +52,11 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
      *
      * Sub-classes may override this method to change behavior.
      */
+
     @Skip
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("channel 取消线程(NioEventLoop) 的绑定: channelUnregistered()");
         ctx.fireChannelUnregistered();
     }
 
@@ -66,6 +69,7 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
     @Skip
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("channel 准备就绪：channelActive()");
         ctx.fireChannelActive();
     }
 
@@ -78,6 +82,7 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
     @Skip
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("channel 被关闭：channelInactive()");
         ctx.fireChannelInactive();
     }
 
@@ -90,6 +95,7 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
     @Skip
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        System.out.println("channel 有数据可读：channelRead()");
         ctx.fireChannelRead(msg);
     }
 
@@ -102,6 +108,7 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
     @Skip
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("channel 某次数据读完：channelReadComplete()");
         ctx.fireChannelReadComplete();
     }
 

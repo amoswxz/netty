@@ -17,6 +17,7 @@ public class NettyServer {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(boss, work).channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                    @Override
                     protected void initChannel(NioSocketChannel ch) {
                         ch.pipeline().addLast(new FirstServerHandler());
                         ch.pipeline().addLast(new SecondServerHandler());
