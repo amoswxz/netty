@@ -546,7 +546,7 @@ public class HashedWheelTimer implements Timer {
             startTimeInitialized.countDown();
             // 只要时间轮的状态为WORKER_STATE_STARTED，就循环的“转动”tick，循环判断响应格子中的到期任务
             do {
-                // waitForNextTick方法主要是计算下次tick的时间, 然后sleep到下次tick
+                // waitForNextTick方法主要是计算下次转动格子的的时间, 然后sleep到下次tick
                 // 返回值就是System.nanoTime() - startTime, 也就是Timer启动后到这次tick, 所过去的时间
                 final long deadline = waitForNextTick();
                 if (deadline > 0) {
@@ -557,7 +557,7 @@ public class HashedWheelTimer implements Timer {
                     HashedWheelBucket bucket = wheel[idx];
                     // 从任务队列中取出任务加入到对应的格子中
                     transferTimeoutsToBuckets();
-                    // 过期执行格子中的任务
+                    // 执行格子中的任务
                     bucket.expireTimeouts(deadline);
                     tick++;
                 }
@@ -639,7 +639,6 @@ public class HashedWheelTimer implements Timer {
          */
         private long waitForNextTick() {
             long deadline = tickDuration * (tick + 1);
-
             for (; ; ) {
                 final long currentTime = System.nanoTime() - startTime;
                 long sleepTimeMs = (deadline - currentTime + 999999) / 1000000;
@@ -884,7 +883,6 @@ public class HashedWheelTimer implements Timer {
             if (timeout.next != null) {
                 timeout.next.prev = timeout.prev;
             }
-
             if (timeout == head) {
                 // if timeout is also the tail we need to adjust the entry too
                 if (timeout == tail) {
