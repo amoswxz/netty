@@ -79,15 +79,30 @@ import static io.netty.util.internal.StringUtil.simpleClassName;
 
 /**
  * 当前一个任务执行时间过长的时候，会影响后续任务的到期执行时间的。也就是说其中的任务是串行执行的。所以，要求里面的任务都要短平快。
+ * tick: 时间轮里每一格;
+ * tickDuration: 每一格的时长;
+ * ticksPerWheel: 时间轮总共有多少格.
+ * newTimeout: 定时任务分配到时间轮
  */
 public class HashedWheelTimer implements Timer {
 
     static final InternalLogger logger = InternalLoggerFactory.getInstance(HashedWheelTimer.class);
-
+    /**
+     * 时间轮HashedWheelTimer创建的数量
+     */
     private static final AtomicInteger INSTANCE_COUNTER = new AtomicInteger();
+    /**
+     * 是否创建太多实例
+     */
     private static final AtomicBoolean WARNED_TOO_MANY_INSTANCES = new AtomicBoolean();
+    /**
+     * 实例创建的限制，这里就只是一个警告，并没有真正的限制
+     */
     private static final int INSTANCE_COUNT_LIMIT = 64;
     private static final long MILLISECOND_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
+    /**
+     * 资源泄露检测
+     */
     private static final ResourceLeakDetector<HashedWheelTimer> leakDetector = ResourceLeakDetectorFactory.instance()
             .newResourceLeakDetector(HashedWheelTimer.class, 1);
     /**
@@ -97,9 +112,13 @@ public class HashedWheelTimer implements Timer {
             AtomicIntegerFieldUpdater.newUpdater(HashedWheelTimer.class, "workerState");
 
     private final ResourceLeakTracker<HashedWheelTimer> leak;
-    //类似于线程池中的worker
+    /**
+     * 类似于线程池中的worker
+     */
     private final Worker worker = new Worker();
-    //线程工厂出来供工作线程
+    /**
+     * 线程工厂出来供工作线程
+     */
     private final Thread workerThread;
 
     public static final int WORKER_STATE_INIT = 0;
@@ -137,7 +156,9 @@ public class HashedWheelTimer implements Timer {
      * 最大任务数量
      */
     private final long maxPendingTimeouts;
-
+    /**
+     * 时间轮最开始的时间
+     */
     private volatile long startTime;
 
     /**
@@ -286,7 +307,8 @@ public class HashedWheelTimer implements Timer {
             throw new IllegalArgumentException("ticksPerWheel must be greater than 0: " + ticksPerWheel);
         }
 
-        // normalize ticksperwheel to power of two and initialize the wheel. 根据2的幂初始化时间轮
+        // normalize ticksperwheel to power of two and initialize the wheel.
+        // 根据2的幂初始化时间轮
         wheel = createWheel(ticksPerWheel);
         // 这是一个标示符，用来快速计算任务应该在的格子。
         // 我们知道，给定一个deadline的定时任务，其应该在的格子=deadline%wheel.length.但是%操作是个相对耗时的操作，所以使用一种变通的位运算代替：
@@ -296,7 +318,6 @@ public class HashedWheelTimer implements Timer {
         // Convert tickDuration to nanos.
         //时间间隔转化为纳秒
         long duration = unit.toNanos(tickDuration);
-
         // Prevent overflow. 防止溢出
         // 校验是否存在溢出。即指针转动的时间间隔不能太长而导致tickDuration*wheel.length>Long.MAX_VALUE
         if (duration >= Long.MAX_VALUE / wheel.length) {
@@ -465,7 +486,6 @@ public class HashedWheelTimer implements Timer {
         }
         //任务数量加1
         long pendingTimeoutsCount = pendingTimeouts.incrementAndGet();
-
         if (maxPendingTimeouts > 0 && pendingTimeoutsCount > maxPendingTimeouts) {
             pendingTimeouts.decrementAndGet();
             throw new RejectedExecutionException("Number of pending timeouts ("
@@ -474,13 +494,13 @@ public class HashedWheelTimer implements Timer {
         }
         //添加任务的时候启动
         start();
-
         // Add the timeout to the timeout queue which will be processed on the next tick.
         // During processing all the queued HashedWheelTimeouts will be added to the correct HashedWheelBucket.
         //计算任务的延迟时间
         long deadline = System.nanoTime() + unit.toNanos(delay) - startTime;
 
         // Guard against overflow.
+        //防止溢出
         if (delay > 0 && deadline < 0) {
             deadline = Long.MAX_VALUE;
         }
