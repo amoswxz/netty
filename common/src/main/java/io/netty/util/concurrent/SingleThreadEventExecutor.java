@@ -92,6 +92,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private final Set<Runnable> shutdownHooks = new LinkedHashSet<Runnable>();
     //todo 这块还不清楚是干嘛的 应该是添加任务的时候要唤醒selector
     private final boolean addTaskWakesUp;
+    //代表最大的等待时间
     private final int maxPendingTasks;
     private final RejectedExecutionHandler rejectedExecutionHandler;
 
