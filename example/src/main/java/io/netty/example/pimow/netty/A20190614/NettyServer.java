@@ -10,6 +10,7 @@ import io.netty.util.HashedWheelTimer;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -17,19 +18,25 @@ import java.util.concurrent.TimeUnit;
  **/
 public class NettyServer {
 
+
+    private static final ThreadLocal<WeakHashMap> a = new ThreadLocal();
+
     public static void main(String[] args) throws InterruptedException {
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        HashedWheelTimer hashedWheelTimer = new HashedWheelTimer(100, TimeUnit.MILLISECONDS);
-        System.out.println("start:" + LocalDateTime.now().format(formatter));
-        hashedWheelTimer.newTimeout(timeout -> {
-            System.out.println("task :" + LocalDateTime.now().format(formatter));
-        }, 3, TimeUnit.SECONDS);
-        Thread.sleep(5000);
+    ThreadLocal<String> b = new ThreadLocal();
+        b.set("111");
+        b.remove();
 
 
-
-
+        WeakHashMap<User, String> weakHashMap = new WeakHashMap();
+        User zhangsan = new User("zhangsan", 24);
+        weakHashMap.put(zhangsan, "zhangsan");
+        //强引用
+        System.out.println("有强引用的时候:map大小" + weakHashMap.size());
+        //去掉强引用
+        zhangsan = null;
+        System.gc();
+        Thread.sleep(1000);
+        System.out.println("无强引用的时候:map大小" + weakHashMap.size());
 
         int i = normalizeTicksPerWheel(10);
         System.out.println(i);

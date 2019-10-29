@@ -42,7 +42,9 @@ import java.util.Set;
  * @see ThreadLocal
  */
 public class FastThreadLocal<V> {
-
+    /**
+     * 加载类的时候就要调用nextVariableIndex
+     */
     private static final int variablesToRemoveIndex = InternalThreadLocalMap.nextVariableIndex();
 
     /**
@@ -63,7 +65,7 @@ public class FastThreadLocal<V> {
                 Set<FastThreadLocal<?>> variablesToRemove = (Set<FastThreadLocal<?>>) v;
                 FastThreadLocal<?>[] variablesToRemoveArray =
                         variablesToRemove.toArray(new FastThreadLocal[0]);
-                for (FastThreadLocal<?> tlv: variablesToRemoveArray) {
+                for (FastThreadLocal<?> tlv : variablesToRemoveArray) {
                     tlv.remove(threadLocalMap);
                 }
             }
@@ -96,15 +98,18 @@ public class FastThreadLocal<V> {
 
     @SuppressWarnings("unchecked")
     private static void addToVariablesToRemove(InternalThreadLocalMap threadLocalMap, FastThreadLocal<?> variable) {
+        //根据index获取到value
         Object v = threadLocalMap.indexedVariable(variablesToRemoveIndex);
         Set<FastThreadLocal<?>> variablesToRemove;
         if (v == InternalThreadLocalMap.UNSET || v == null) {
+            // 创建一个set集合放到第0的位置上
             variablesToRemove = Collections.newSetFromMap(new IdentityHashMap<FastThreadLocal<?>, Boolean>());
             threadLocalMap.setIndexedVariable(variablesToRemoveIndex, variablesToRemove);
         } else {
+            // 已经有了，则直接取过来
             variablesToRemove = (Set<FastThreadLocal<?>>) v;
         }
-
+        // 新增新的FastThreadLocal到set集合
         variablesToRemove.add(variable);
     }
 
@@ -134,6 +139,7 @@ public class FastThreadLocal<V> {
     @SuppressWarnings("unchecked")
     public final V get() {
         InternalThreadLocalMap threadLocalMap = InternalThreadLocalMap.get();
+        //根据index获取
         Object v = threadLocalMap.indexedVariable(index);
         if (v != InternalThreadLocalMap.UNSET) {
             return (V) v;
@@ -189,9 +195,12 @@ public class FastThreadLocal<V> {
      */
     public final void set(V value) {
         if (value != InternalThreadLocalMap.UNSET) {
+            //根据普通线程或者fastThread获取不同的InternalThreadLocalMap
             InternalThreadLocalMap threadLocalMap = InternalThreadLocalMap.get();
+            //从数组index=1开始存放数据
             setKnownNotUnset(threadLocalMap, value);
         } else {
+            // 如果入参是一个UNSET,那么执行删除逻辑
             remove();
         }
     }
@@ -211,7 +220,10 @@ public class FastThreadLocal<V> {
      * @return see {@link InternalThreadLocalMap#setIndexedVariable(int, Object)}.
      */
     private void setKnownNotUnset(InternalThreadLocalMap threadLocalMap, V value) {
+        //从index=1开始存储数据
+        // index 是当前FastThreadLocal的索引 ，如果是 新增，那么这个方法返回true ，如果是修改则返回 false
         if (threadLocalMap.setIndexedVariable(index, value)) {
+            //addToVariablesToRemove(...) 方法会将 FastThreadLocal 对象存放到 threadLocalMap 中的一个集合中
             addToVariablesToRemove(threadLocalMap, this);
         }
     }
@@ -230,6 +242,7 @@ public class FastThreadLocal<V> {
     public final boolean isSet(InternalThreadLocalMap threadLocalMap) {
         return threadLocalMap != null && threadLocalMap.isIndexedVariableSet(index);
     }
+
     /**
      * Sets the value to uninitialized; a proceeding call to get() will trigger a call to initialValue().
      */
@@ -261,7 +274,7 @@ public class FastThreadLocal<V> {
     }
 
     /**
-     * Returns the initial value for this thread-local variable.
+     * Returns the initial leakDetectionLevelvalue for this thread-local variable.
      */
     protected V initialValue() throws Exception {
         return null;
@@ -272,5 +285,6 @@ public class FastThreadLocal<V> {
      * is not guaranteed to be called when the `Thread` completes which means you can not depend on this for
      * cleanup of the resources in the case of `Thread` completion.
      */
-    protected void onRemoval(@SuppressWarnings("UnusedParameters") V value) throws Exception { }
+    protected void onRemoval(@SuppressWarnings("UnusedParameters") V value) throws Exception {
+    }
 }

@@ -121,11 +121,20 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     // Cache line padding (must be public)
     // With CompressedOops enabled, an instance of this class should occupy at least 128 bytes.
     public long rp1, rp2, rp3, rp4, rp5, rp6, rp7, rp8, rp9;
+    /**
+     *  启用CompressedOops后，此类的实例应至少占用128个字节。-XX:UseCompressedOops：开启指针压缩，reference类型在64位机器上真用4bytes;
+     *  保证FastThreadLocal的实体对象大小超过128byte，以避免伪共享发生
+     *  如果资源能够避免伪共享，则FastThreadLocal的实体对象能够部分缓存至L1缓存，通过提高缓存命中率加快查询速度(查询L1缓存的速度要远快于查询主存速度)
+     */
 
     private InternalThreadLocalMap() {
         super(newIndexedVariableTable());
     }
 
+    /**
+     * 初始化数组的大小
+     * @return
+     */
     private static Object[] newIndexedVariableTable() {
         Object[] array = new Object[32];
         Arrays.fill(array, UNSET);
@@ -136,42 +145,42 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
         int count = 0;
 
         if (futureListenerStackDepth != 0) {
-            count ++;
+            count++;
         }
         if (localChannelReaderStackDepth != 0) {
-            count ++;
+            count++;
         }
         if (handlerSharableCache != null) {
-            count ++;
+            count++;
         }
         if (counterHashCode != null) {
-            count ++;
+            count++;
         }
         if (random != null) {
-            count ++;
+            count++;
         }
         if (typeParameterMatcherGetCache != null) {
-            count ++;
+            count++;
         }
         if (typeParameterMatcherFindCache != null) {
-            count ++;
+            count++;
         }
         if (stringBuilder != null) {
-            count ++;
+            count++;
         }
         if (charsetEncoderCache != null) {
-            count ++;
+            count++;
         }
         if (charsetDecoderCache != null) {
-            count ++;
+            count++;
         }
         if (arrayList != null) {
-            count ++;
+            count++;
         }
 
-        for (Object o: indexedVariables) {
+        for (Object o : indexedVariables) {
             if (o != UNSET) {
-                count ++;
+                count++;
             }
         }
 
@@ -286,7 +295,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
 
     public Object indexedVariable(int index) {
         Object[] lookup = indexedVariables;
-        return index < lookup.length? lookup[index] : UNSET;
+        return index < lookup.length ? lookup[index] : UNSET;
     }
 
     /**
@@ -299,21 +308,27 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
             lookup[index] = value;
             return oldValue == UNSET;
         } else {
+            //扩容
             expandIndexedVariableTableAndSet(index, value);
             return true;
         }
     }
 
+    /**
+     * 扩容
+     * @param index
+     * @param value
+     */
     private void expandIndexedVariableTableAndSet(int index, Object value) {
         Object[] oldArray = indexedVariables;
         final int oldCapacity = oldArray.length;
         int newCapacity = index;
-        newCapacity |= newCapacity >>>  1;
-        newCapacity |= newCapacity >>>  2;
-        newCapacity |= newCapacity >>>  4;
-        newCapacity |= newCapacity >>>  8;
+        newCapacity |= newCapacity >>> 1;
+        newCapacity |= newCapacity >>> 2;
+        newCapacity |= newCapacity >>> 4;
+        newCapacity |= newCapacity >>> 8;
         newCapacity |= newCapacity >>> 16;
-        newCapacity ++;
+        newCapacity++;
 
         Object[] newArray = Arrays.copyOf(oldArray, newCapacity);
         Arrays.fill(newArray, oldCapacity, newArray.length, UNSET);

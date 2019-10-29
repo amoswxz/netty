@@ -31,11 +31,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  * unless you know what you are doing.
  */
 class UnpaddedInternalThreadLocalMap {
-
+    /**
+     * 如果是普通的Thread使用FastThreadLocal,还是采用ThreadLocal存储资源
+     */
     static final ThreadLocal<InternalThreadLocalMap> slowThreadLocalMap = new ThreadLocal<InternalThreadLocalMap>();
     static final AtomicInteger nextIndex = new AtomicInteger();
 
     /** Used by {@link FastThreadLocal} */
+    /**
+     * FastThreadLocal的资源存放地址，ThreadLocal中是通过ThreadLocalMap存放资源，索引是ThreadLocal对象的threadLocalHashCode进行hash得到
+     * FastThreadLocal使用Object[]数组，使用通过nextIndex自增得到的数值作为索引，保证每次查询数值都是O(1)操作
+     * 需要注意，FastThreadLocal对象为了避免伪共享带来的性能损耗，使用padding使得FastThreadLocal的对象大小超过128byte
+     * 避免伪共享的情况下，indexedVariables的多个连续数值在不更新的前提下可以被缓存至cpu chache line中，这样大大的提高了查询效率
+     */
+    //另外Object[0]存储一个Set<FastThreadLocal<?>>集合。
     Object[] indexedVariables;
 
     // Core thread-locals
