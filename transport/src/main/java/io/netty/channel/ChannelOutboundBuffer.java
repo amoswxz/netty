@@ -86,7 +86,7 @@ public final class ChannelOutboundBuffer {
     private long nioBufferSize;
 
     private boolean inFail;
-
+    //totalPendingSize字段记录了该ChannelOutboundBuffer中所有带发送Entry对象的占的总内存大小和所有带发送数据的大小。
     private static final AtomicLongFieldUpdater<ChannelOutboundBuffer> TOTAL_PENDING_SIZE_UPDATER =
             AtomicLongFieldUpdater.newUpdater(ChannelOutboundBuffer.class, "totalPendingSize");
 
@@ -143,7 +143,7 @@ public final class ChannelOutboundBuffer {
                 flushedEntry = entry;
             }
             do {
-                flushed ++;
+                flushed++;
                 if (!entry.promise.setUncancellable()) {
                     // Was cancelled so make sure we free up memory and notify about the freed bytes
                     int pending = entry.cancel();
@@ -169,9 +169,10 @@ public final class ChannelOutboundBuffer {
         if (size == 0) {
             return;
         }
-
+        //totalPendingSize字段记录了该ChannelOutboundBuffer中所有带发送Entry对象的占的总内存大小和所有带发送数据的大小。
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
         if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {
+            //这里说明写的数据超过了设置写缓冲区的高水位，那么将会触发fireChannelWritabilityChanged事件。
             setUnwritable(invokeLater);
         }
     }
@@ -222,6 +223,7 @@ public final class ChannelOutboundBuffer {
 
     /**
      * Return the current message flush progress.
+     *
      * @return {@code 0} if nothing was flushed before for the current message or there is no current message
      */
     public long currentProgress() {
@@ -314,7 +316,7 @@ public final class ChannelOutboundBuffer {
     }
 
     private void removeEntry(Entry e) {
-        if (-- flushed == 0) {
+        if (--flushed == 0) {
             // processed everything
             flushedEntry = null;
             if (e == tailEntry) {
@@ -331,7 +333,7 @@ public final class ChannelOutboundBuffer {
      * This operation assumes all messages in this buffer is {@link ByteBuf}.
      */
     public void removeBytes(long writtenBytes) {
-        for (;;) {
+        for (; ; ) {
             Object msg = current();
             if (!(msg instanceof ByteBuf)) {
                 assert writtenBytes == 0;
@@ -392,6 +394,7 @@ public final class ChannelOutboundBuffer {
      * {@link AbstractChannel#doWrite(ChannelOutboundBuffer)}.
      * Refer to {@link NioSocketChannel#doWrite(ChannelOutboundBuffer)} for an example.
      * </p>
+     *
      * @param maxCount The maximum amount of buffers that will be added to the return value.
      * @param maxBytes A hint toward the maximum number of bytes to include as part of the return value. Note that this
      *                 value maybe exceeded because we make a best effort to include at least 1 {@link ByteBuffer}
@@ -550,7 +553,7 @@ public final class ChannelOutboundBuffer {
 
     private void setUserDefinedWritability(int index) {
         final int mask = ~writabilityMask(index);
-        for (;;) {
+        for (; ; ) {
             final int oldValue = unwritable;
             final int newValue = oldValue & mask;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
@@ -564,7 +567,7 @@ public final class ChannelOutboundBuffer {
 
     private void clearUserDefinedWritability(int index) {
         final int mask = writabilityMask(index);
-        for (;;) {
+        for (; ; ) {
             final int oldValue = unwritable;
             final int newValue = oldValue | mask;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
@@ -584,7 +587,7 @@ public final class ChannelOutboundBuffer {
     }
 
     private void setWritable(boolean invokeLater) {
-        for (;;) {
+        for (; ; ) {
             final int oldValue = unwritable;
             final int newValue = oldValue & ~1;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
@@ -597,11 +600,13 @@ public final class ChannelOutboundBuffer {
     }
 
     private void setUnwritable(boolean invokeLater) {
-        for (;;) {
+        for (; ; ) {
             final int oldValue = unwritable;
             final int newValue = oldValue | 1;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
                 if (oldValue == 0 && newValue != 0) {
+                    //去触发一个事件，告诉超过高水位啦
+                    //可写状态变更事件，当一个Channel的可写的状态发生改变的时候执行，可以保证写的操作不要太快，防止OOM，pipeline.fireChannelWritabilityChanged();
                     fireChannelWritabilityChanged(invokeLater);
                 }
                 break;
@@ -654,7 +659,7 @@ public final class ChannelOutboundBuffer {
 
         try {
             inFail = true;
-            for (;;) {
+            for (; ; ) {
                 if (!remove0(cause, notify)) {
                     break;
                 }
@@ -804,7 +809,9 @@ public final class ChannelOutboundBuffer {
                 return new Entry(handle);
             }
         };
-
+        //header （16 bytes） + 6 * reference fields（8 bytes）+ 2 * long fields（8 bytes）+ 2 * int fields（4 bytes）+ 1 *
+        // boolean field（1 byte）= 89 ——> 加上7bytes的padding = 96 bytes
+        //这就是CHANNEL_OUTBOUND_BUFFER_ENTRY_OVERHEAD默认值 96 的由来。(关于JVM中对象的内存大小的详细分析，欢迎参阅JVM中 对象的内存布局 以及 实例分析)
         private final Handle<Entry> handle;
         Entry next;
         Object msg;
@@ -812,7 +819,10 @@ public final class ChannelOutboundBuffer {
         ByteBuffer buf;
         ChannelPromise promise;
         long progress;
+        //待发送数据包的总大小（该属性与pendingSize的区别在于，如果是待发送的是FileRegion数据对象，则pengdingSize中只有对象内存的大小，即真实的数据大小被记录为0；但total
+        // 属性则是会记录FileRegion中数据大小，并且total属性是不包含对象内存大小，仅仅是对数据本身大小的记录）;
         long total;
+        //记录有该ByteBuf or ByteBufs 中待发送数据大小 和 对象本身内存大小 的累加和;
         int pendingSize;
         int count = -1;
         boolean cancelled;

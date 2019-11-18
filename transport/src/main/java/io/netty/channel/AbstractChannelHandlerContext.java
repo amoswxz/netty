@@ -761,7 +761,9 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     private void invokeWriteAndFlush(Object msg, ChannelPromise promise) {
         if (invokeHandler()) {
+            //先写到缓冲区ChannelOutboundBuffer
             invokeWrite0(msg, promise);
+            //将输出缓冲区中的数据通过socket发送到网络中
             invokeFlush0();
         } else {
             writeAndFlush(msg, promise);

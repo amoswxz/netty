@@ -109,7 +109,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
                 }
             }
         }
-        //获取nioEventLoop线程的时候使用位运算还是摸运算
+        //获取nioEventLoop线程的时候使用位运算还是摸运算 是一个executor选择器
         chooser = chooserFactory.newChooser(children);
         //线程
         final FutureListener<Object> terminationListener = new FutureListener<Object>() {

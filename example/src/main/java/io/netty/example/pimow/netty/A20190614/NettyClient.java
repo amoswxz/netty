@@ -1,6 +1,8 @@
 package io.netty.example.pimow.netty.A20190614;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -11,6 +13,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.nio.channels.Selector;
 import java.util.Date;
 
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import sun.nio.ch.SelectorImpl;
 
 /**
@@ -33,16 +37,20 @@ public class NettyClient {
             if (future.isSuccess()) {
                 System.out.println("连接成功");
             } else {
-                System.out.println("连接失败");
+                System.out.println("连接失败" + future.cause());
             }
         });
-        while (true) {
-            channelFuture.channel().writeAndFlush(new Date() + ": hello world!");
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
+        //1、创建缓冲区
+        ByteBuf heapBuffer = Unpooled.buffer(64);
+        //2、写入缓冲区内容
+        heapBuffer.writeBytes("client->server".getBytes());
+
+        ChannelFuture channelFuture1 = channelFuture.channel().writeAndFlush(heapBuffer);
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 //        work.shutdownGracefully();
     }

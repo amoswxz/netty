@@ -10,12 +10,13 @@ public class SecondServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        System.out.println("server second");
+        System.out.println("server second" );
         super.channelRead(ctx,msg);
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("server second channel active");
+        ctx.channel().write("测试顺序");
+        ctx.write("测试顺序");
     }
 }

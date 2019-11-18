@@ -2,12 +2,17 @@ package io.netty.example.pimow.netty.A20190614;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.HashedWheelTimer;
 
+import javax.sound.midi.Soundbank;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.WeakHashMap;
@@ -22,42 +27,51 @@ public class NettyServer {
     private static final ThreadLocal<WeakHashMap> a = new ThreadLocal();
 
     public static void main(String[] args) throws InterruptedException {
-    ThreadLocal<String> b = new ThreadLocal();
-        b.set("111");
-        b.remove();
+        Object o = AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                return "abc";
+            }
+        });
+
+        System.out.println(o);
 
 
-        WeakHashMap<User, String> weakHashMap = new WeakHashMap();
-        User zhangsan = new User("zhangsan", 24);
-        weakHashMap.put(zhangsan, "zhangsan");
-        //强引用
-        System.out.println("有强引用的时候:map大小" + weakHashMap.size());
-        //去掉强引用
-        zhangsan = null;
-        System.gc();
-        Thread.sleep(1000);
-        System.out.println("无强引用的时候:map大小" + weakHashMap.size());
+//        ThreadLocal<String> b = new ThreadLocal();
+//        b.set("111");
+//        b.remove();
+//
+//
+//        WeakHashMap<User, String> weakHashMap = new WeakHashMap();
+//        User zhangsan = new User("zhangsan", 24);
+//        weakHashMap.put(zhangsan, "zhangsan");
+//        //强引用
+//        System.out.println("有强引用的时候:map大小" + weakHashMap.size());
+//        //去掉强引用
+//        zhangsan = null;
+//        System.gc();
+//        Thread.sleep(1000);
+//        System.out.println("无强引用的时候:map大小" + weakHashMap.size());
+//
+//        int i = normalizeTicksPerWheel(10);
+//        System.out.println(i);
+//        int i1 = normalizeTicksPerWheel(3);
+//        System.out.println(i1);
+//        int i2 = normalizeTicksPerWheel(8);
+//        System.out.println(i2);
 
-        int i = normalizeTicksPerWheel(10);
-        System.out.println(i);
-        int i1 = normalizeTicksPerWheel(3);
-        System.out.println(i1);
-        int i2 = normalizeTicksPerWheel(8);
-        System.out.println(i2);
-
-        NioEventLoopGroup boss = new NioEventLoopGroup(1);
+        NioEventLoopGroup boss = new NioEventLoopGroup();
         NioEventLoopGroup work = new NioEventLoopGroup();
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(boss, work).channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
-                        ch.pipeline().addLast(new StringDecoder());
+                        System.out.println(11111);
                         ch.pipeline().addLast(new FirstServerHandler());
-//                        ch.pipeline().addLast(new SecondServerHandler());
                     }
                 });
-        serverBootstrap.bind(8000);
+        serverBootstrap.bind(8000).sync();
     }
 
 
