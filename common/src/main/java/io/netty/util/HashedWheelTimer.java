@@ -312,7 +312,7 @@ public class HashedWheelTimer implements Timer {
         wheel = createWheel(ticksPerWheel);
         // 这是一个标示符，用来快速计算任务应该在的格子。
         // 我们知道，给定一个deadline的定时任务，其应该在的格子=deadline%wheel.length.但是%操作是个相对耗时的操作，所以使用一种变通的位运算代替：
-        // 因为一圈的长度为2的n次方，mask = 2^n-1后低位将全部是1，然后deadline&mast == deadline%wheel.length
+        // 因为一圈的长度为2的n次方，mask = 2^n-1后低位将全部是1，然后deadline&mask == deadline%wheel.length
         // java中的HashMap也是使用这种处理方法
         mask = wheel.length - 1;
         // Convert tickDuration to nanos.
@@ -333,7 +333,6 @@ public class HashedWheelTimer implements Timer {
         } else {
             this.tickDuration = duration;
         }
-
         workerThread = threadFactory.newThread(worker);
         //leakDetection 内存泄露检测  如果是守护线程不检查
         leak = leakDetection || !workerThread.isDaemon() ? leakDetector.track(this) : null;
@@ -505,6 +504,7 @@ public class HashedWheelTimer implements Timer {
             deadline = Long.MAX_VALUE;
         }
         // 这里定时任务不是直接加到对应的格子中，而是先加入到一个队列里，然后等到下一个tick的时候，会从队列里取出最多100000个任务加入到指定的格子中
+        //防止竞争
         HashedWheelTimeout timeout = new HashedWheelTimeout(this, task, deadline);
         timeouts.add(timeout);
         return timeout;

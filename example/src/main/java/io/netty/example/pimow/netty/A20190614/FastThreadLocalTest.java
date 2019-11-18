@@ -19,6 +19,7 @@ public class FastThreadLocalTest {
         FastThreadLocalThread fastThreadLocalThread = new FastThreadLocalThread(thread);
         fastThreadLocalThread.start();
 
+
     }
 
 }

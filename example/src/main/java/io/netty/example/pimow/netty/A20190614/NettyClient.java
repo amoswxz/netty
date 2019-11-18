@@ -2,20 +2,13 @@ package io.netty.example.pimow.netty.A20190614;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-
-import java.nio.channels.Selector;
-import java.util.Date;
-
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
-import sun.nio.ch.SelectorImpl;
 
 /**
  * @author: Pimow
@@ -23,6 +16,14 @@ import sun.nio.ch.SelectorImpl;
 public class NettyClient {
 
     public static void main(String[] args) {
+        PooledByteBufAllocator aDefault = PooledByteBufAllocator.DEFAULT;
+        ByteBuf heapBuffer1 = aDefault.directBuffer(64);
+        //1、创建缓冲区
+        //2、写入缓冲区内容
+        heapBuffer1.writeBytes("client->server".getBytes());
+
+        heapBuffer1.release();
+
         NioEventLoopGroup work = new NioEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap();
         //channel(A.class)这里就是设置一个通道的类型
@@ -46,6 +47,7 @@ public class NettyClient {
         //2、写入缓冲区内容
         heapBuffer.writeBytes("client->server".getBytes());
 
+        heapBuffer.release();
         ChannelFuture channelFuture1 = channelFuture.channel().writeAndFlush(heapBuffer);
         try {
             Thread.sleep(2000);
@@ -53,5 +55,6 @@ public class NettyClient {
             e.printStackTrace();
         }
 //        work.shutdownGracefully();
+
     }
 }

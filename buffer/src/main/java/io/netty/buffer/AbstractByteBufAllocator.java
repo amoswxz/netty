@@ -41,7 +41,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         //根据设置的Level来选择使用何种装饰器
         switch (ResourceLeakDetector.getLevel()) {
             case SIMPLE:
-                //创建用于跟踪和表示内容泄露的ResourcLeak对象
+                //创建用于跟踪和表示内容泄露的ResourceLeak对象
                 leak = AbstractByteBuf.leakDetector.track(buf);
                 if (leak != null) {
                     buf = new SimpleLeakAwareByteBuf(buf, leak);
