@@ -72,6 +72,11 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
         return (ChannelOption<T>) pool.newInstance(name);
     }
 
+    /**
+     * ChannelOption.ALLOCATOR
+     * 在4.x版本中，UnpooledByteBufAllocator是默认的allocator，尽管其存在某些限制。现在PooledByteBufAllocator已经广泛使用一段时间，并且我们有了增强的缓冲区泄漏追踪机制， 所以是时候让PooledByteBufAllocator成为默认了。
+     * 总结：Netty4使用对象池，重用缓冲区。
+     */
     public static final ChannelOption<ByteBufAllocator> ALLOCATOR = valueOf("ALLOCATOR");
     public static final ChannelOption<RecvByteBufAllocator> RCVBUF_ALLOCATOR = valueOf("RCVBUF_ALLOCATOR");
     public static final ChannelOption<MessageSizeEstimator> MESSAGE_SIZE_ESTIMATOR = valueOf("MESSAGE_SIZE_ESTIMATOR");
