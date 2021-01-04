@@ -59,7 +59,7 @@ public class NettyServer {
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
-                        System.out.println(11111);
+                        System.out.println(111111);
                         ch.pipeline().addLast(new FirstServerHandler());
                     }
                 });
